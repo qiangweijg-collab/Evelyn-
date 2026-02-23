@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Maker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+            color: #fff;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 300;
+            letter-spacing: 4px;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+        }
+
+        .layout {
+            display: flex;
+            gap: 32px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .panel-label {
+            font-size: 11px;
+            letter-spacing: 3px;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+        }
+
+        video {
+            width: 320px;
+            height: 240px;
+            border-radius: 16px;
+            object-fit: cover;
+            display: block;
+            background: #000;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        /* Style selector */
+        .style-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            width: 320px;
+        }
+
+        .style-btn {
+            background: rgba(255,255,255,0.07);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 10px 6px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            color: #fff;
+        }
+
+        .style-btn:hover { background: rgba(255,255,255,0.14); }
+        .style-btn.active {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.2);
+        }
+
+        .style-btn .icon { font-size: 22px; display: block; margin-bottom: 4px; }
+        .style-btn .name { font-size: 10px; letter-spacing: 1px; color: rgba(255,255,255,0.7); }
+
+        /* Create button */
+        #createBtn {
+            padding: 14px 40px;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #f7971e, #ffd200);
+            color: #1a1a2e;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            box-shadow: 0 8px 24px rgba(255, 210, 0, 0.35);
+            transition: all 0.2s;
+        }
+
+        #createBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 32px rgba(255, 210, 0, 0.5);
+        }
+
+        #createBtn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Emoji result */
+        .emoji-result-wrap {
+            position: relative;
+            width: 280px;
+            height: 280px;
+        }
+
+        #emojiCanvas {
+            border-radius: 50%;
+            width: 280px;
+            height: 280px;
+            display: block;
+            box-shadow: 0 0 0 8px rgba(255,255,255,0.1), 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .placeholder-circle {
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.05);
+            border: 3px dashed rgba(255,255,255,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .dl-btn {
+            padding: 10px 22px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+
+        #downloadBtn {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: #1a1a2e;
+        }
+        #downloadBtn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(79,172,254,0.4); }
+
+        #retryBtn {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        #retryBtn:hover { background: rgba(255,255,255,0.18); }
+
+        .dl-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* countdown overlay */
+        #countdown {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            font-size: 120px;
+            font-weight: 700;
+            color: #ffd200;
+            text-shadow: 0 0 40px rgba(255,210,0,0.8);
+        }
+
+        /* processing overlay */
+        #processing {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(6px);
+            z-index: 100;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top-color: #ffd200;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .status-bar {
+            margin-top: 10px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
+            min-height: 20px;
+        }
+
+        canvas { display: none; }
+    </style>
+</head>
+<body>
+
+    <h1>EMOJI MAKER</h1>
+    <p class="subtitle">TURN YOUR FACE INTO AN EMOJI</p>
+
+    <div class="layout">
+        <!-- LEFT: Camera + controls -->
+        <div class="panel">
+            <span class="panel-label">Live Camera</span>
+            <video id="video" autoplay playsinline muted></video>
+
+            <span class="panel-label" style="margin-top:4px;">Choose Style</span>
+            <div class="style-grid">
+                <div class="style-btn active" data-style="classic">
+                    <span class="icon">😀</span>
+                    <span class="name">Classic</span>
+                </div>
+                <div class="style-btn" data-style="warm">
+                    <span class="icon">🌟</span>
+                    <span class="name">Warm Glow</span>
+                </div>
+                <div class="style-btn" data-style="cool">
+                    <span class="icon">🧊</span>
+                    <span class="name">Cool Tone</span>
+                </div>
+                <div class="style-btn" data-style="sketch">
+                    <span class="icon">✏️</span>
+                    <span class="name">Sketch</span>
+                </div>
+                <div class="style-btn" data-style="pop">
+                    <span class="icon">🎨</span>
+                    <span class="name">Pop Art</span>
+                </div>
+                <div class="style-btn" data-style="pixel">
+                    <span class="icon">👾</span>
+                    <span name="name">Pixel</span>
+                </div>
+            </div>
+
+            <button id="createBtn" disabled>✨ Create Emoji</button>
+            <div class="status-bar" id="statusBar">Starting camera...</div>
+        </div>
+
+        <!-- RIGHT: Result -->
+        <div class="panel">
+            <span class="panel-label">Your Emoji</span>
+            <div class="emoji-result-wrap">
+                <div class="placeholder-circle" id="placeholder">🙂</div>
+                <canvas id="emojiCanvas" style="display:none;"></canvas>
+            </div>
+            <div class="result-actions">
+                <button class="dl-btn" id="downloadBtn" disabled>⬇ Download</button>
+                <button class="dl-btn" id="retryBtn" disabled>🔄 Retry</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden capture canvas -->
+    <canvas id="captureCanvas"></canvas>
+
+    <!-- Countdown overlay -->
+    <div id="countdown"></div>
+
+    <!-- Processing overlay -->
+    <div id="processing">
+        <div class="spinner"></div>
+        <span style="color:#fff;letter-spacing:2px;font-size:14px;">CREATING EMOJI...</span>
+    </div>
+
+<script>
+const video        = document.getElementById('video');
+const createBtn    = document.getElementById('createBtn');
+const emojiCanvas  = document.getElementById('emojiCanvas');
+const captureCanvas= document.getElementById('captureCanvas');
+const placeholder  = document.getElementById('placeholder');
+const downloadBtn  = document.getElementById('downloadBtn');
+const retryBtn     = document.getElementById('retryBtn');
+const statusBar    = document.getElementById('statusBar');
+const countdownEl  = document.getElementById('countdown');
+const processingEl = document.getElementById('processing');
+
+let stream = null;
+let selectedStyle = 'classic';
+
+// ── Style selection ──────────────────────────────────────────────────────────
+document.querySelectorAll('.style-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedStyle = btn.dataset.style;
+    });
+});
+
+// ── Camera start ─────────────────────────────────────────────────────────────
+async function startCamera() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+            audio: false
+        });
+        video.srcObject = stream;
+        await new Promise(r => video.addEventListener('loadedmetadata', r, { once: true }));
+        createBtn.disabled = false;
+        statusBar.textContent = 'Camera ready — choose a style and click Create!';
+    } catch (err) {
+        statusBar.textContent = 'Camera error: ' + err.message;
+    }
+}
+
+// ── Countdown then shoot ─────────────────────────────────────────────────────
+function countdown(n) {
+    return new Promise(resolve => {
+        countdownEl.style.display = 'flex';
+        countdownEl.textContent = n;
+        const tick = () => {
+            n--;
+            if (n <= 0) {
+                countdownEl.style.display = 'none';
+                resolve();
+            } else {
+                countdownEl.textContent = n;
+                setTimeout(tick, 1000);
+            }
+        };
+        setTimeout(tick, 1000);
+    });
+}
+
+// ── Create emoji ─────────────────────────────────────────────────────────────
+createBtn.addEventListener('click', async () => {
+    createBtn.disabled = true;
+    statusBar.textContent = 'Get ready...';
+    await countdown(3);
+
+    processingEl.style.display = 'flex';
+
+    // Small delay to let UI update
+    await new Promise(r => setTimeout(r, 80));
+
+    try {
+        buildEmoji();
+        placeholder.style.display = 'none';
+        emojiCanvas.style.display = 'block';
+        downloadBtn.disabled = false;
+        retryBtn.disabled = false;
+        statusBar.textContent = 'Emoji created! 🎉';
+    } catch(e) {
+        statusBar.textContent = 'Error: ' + e.message;
+    } finally {
+        processingEl.style.display = 'none';
+        createBtn.disabled = false;
+    }
+});
+
+// ── Retry ────────────────────────────────────────────────────────────────────
+retryBtn.addEventListener('click', () => {
+    placeholder.style.display = 'flex';
+    emojiCanvas.style.display = 'none';
+    downloadBtn.disabled = true;
+    retryBtn.disabled = true;
+    statusBar.textContent = 'Choose a style and click Create!';
+});
+
+// ── Download ─────────────────────────────────────────────────────────────────
+downloadBtn.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.download = 'my-emoji-' + Date.now() + '.png';
+    link.href = emojiCanvas.toDataURL('image/png');
+    link.click();
+});
+
+// ── Core emoji builder ───────────────────────────────────────────────────────
+function buildEmoji() {
+    const SIZE = 512;
+    captureCanvas.width  = video.videoWidth  || 640;
+    captureCanvas.height = video.videoHeight || 480;
+    const ctx = captureCanvas.getContext('2d');
+
+    // Mirror the image (selfie mode)
+    ctx.translate(captureCanvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    let imgData = ctx.getImageData(0, 0, captureCanvas.width, captureCanvas.height);
+
+    // Apply pixel-level style
+    applyStyle(imgData, selectedStyle);
+    ctx.putImageData(imgData, 0, 0);
+
+    // Compose final circular emoji
+    emojiCanvas.width  = SIZE;
+    emojiCanvas.height = SIZE;
+    const ec = emojiCanvas.getContext('2d');
+
+    // Background circle color per style
+    const bgColors = {
+        classic: '#ffd200',
+        warm:    '#ff9a3c',
+        cool:    '#3cc8ff',
+        sketch:  '#f0ece3',
+        pop:     '#ff2d9c',
+        pixel:   '#00d4aa'
+    };
+    const borderColors = {
+        classic: '#e6a800',
+        warm:    '#cc6600',
+        cool:    '#0088cc',
+        sketch:  '#888',
+        pop:     '#aa0060',
+        pixel:   '#007755'
+    };
+
+    ec.save();
+
+    // Drop shadow
+    ec.shadowColor = 'rgba(0,0,0,0.4)';
+    ec.shadowBlur  = 30;
+    ec.shadowOffsetY = 8;
+
+    // Background fill
+    ec.beginPath();
+    ec.arc(SIZE/2, SIZE/2, SIZE/2 - 6, 0, Math.PI*2);
+    ec.fillStyle = bgColors[selectedStyle] || '#ffd200';
+    ec.fill();
+
+    ec.shadowColor = 'transparent';
+    ec.restore();
+
+    // Clip to circle and draw face
+    ec.save();
+    ec.beginPath();
+    ec.arc(SIZE/2, SIZE/2, SIZE/2 - 6, 0, Math.PI*2);
+    ec.clip();
+
+    // Src crop — center square crop from captured frame
+    const sw = Math.min(captureCanvas.width, captureCanvas.height);
+    const sx = (captureCanvas.width  - sw) / 2;
+    const sy = (captureCanvas.height - sw) / 2;
+    ec.globalAlpha = selectedStyle === 'sketch' ? 1 : 0.88;
+    ec.drawImage(captureCanvas, sx, sy, sw, sw, 0, 0, SIZE, SIZE);
+    ec.restore();
+
+    // Pixel grid overlay
+    if (selectedStyle === 'pixel') {
+        drawPixelGrid(ec, SIZE);
+    }
+
+    // Pop art halftone overlay
+    if (selectedStyle === 'pop') {
+        ec.globalAlpha = 0.12;
+        drawHalftone(ec, SIZE);
+        ec.globalAlpha = 1;
+    }
+
+    // Outer border ring
+    ec.beginPath();
+    ec.arc(SIZE/2, SIZE/2, SIZE/2 - 6, 0, Math.PI*2);
+    ec.strokeStyle = borderColors[selectedStyle] || '#e6a800';
+    ec.lineWidth = 12;
+    ec.stroke();
+
+    // Inner highlight arc
+    ec.save();
+    ec.beginPath();
+    ec.arc(SIZE/2, SIZE*0.35, SIZE*0.28, Math.PI*1.1, Math.PI*1.9);
+    ec.strokeStyle = 'rgba(255,255,255,0.35)';
+    ec.lineWidth = 14;
+    ec.lineCap = 'round';
+    ec.stroke();
+    ec.restore();
+}
+
+// ── Pixel-level style processors ─────────────────────────────────────────────
+function applyStyle(imgData, style) {
+    const d = imgData.data;
+
+    if (style === 'classic') {
+        // Warm posterize + boost saturation
+        for (let i = 0; i < d.length; i += 4) {
+            let [r, g, b] = [d[i], d[i+1], d[i+2]];
+            [r, g, b] = boostSaturation(r, g, b, 1.5);
+            r = posterize(r * 1.05, 5);
+            g = posterize(g * 1.02, 5);
+            b = posterize(b * 0.92, 5);
+            d[i]=clamp(r); d[i+1]=clamp(g); d[i+2]=clamp(b);
+        }
+    } else if (style === 'warm') {
+        for (let i = 0; i < d.length; i += 4) {
+            let [r, g, b] = [d[i], d[i+1], d[i+2]];
+            [r, g, b] = boostSaturation(r, g, b, 1.3);
+            r = clamp(r * 1.18);
+            g = clamp(g * 1.05);
+            b = clamp(b * 0.78);
+            d[i]=r; d[i+1]=g; d[i+2]=b;
+        }
+    } else if (style === 'cool') {
+        for (let i = 0; i < d.length; i += 4) {
+            let [r, g, b] = [d[i], d[i+1], d[i+2]];
+            [r, g, b] = boostSaturation(r, g, b, 1.4);
+            r = clamp(r * 0.80);
+            g = clamp(g * 1.02);
+            b = clamp(b * 1.25);
+            d[i]=r; d[i+1]=g; d[i+2]=b;
+        }
+    } else if (style === 'sketch') {
+        // Convert to grayscale edge sketch
+        const w = imgData.width, h = imgData.height;
+        const copy = new Uint8ClampedArray(d);
+        for (let y = 1; y < h-1; y++) {
+            for (let x = 1; x < w-1; x++) {
+                const idx = (y*w + x)*4;
+                const gray = (copy[idx]*0.299 + copy[idx+1]*0.587 + copy[idx+2]*0.114);
+                // Sobel
+                const tl = grayAt(copy, w, x-1, y-1), tc = grayAt(copy, w, x, y-1), tr = grayAt(copy, w, x+1, y-1);
+                const ml = grayAt(copy, w, x-1, y),                                  mr = grayAt(copy, w, x+1, y);
+                const bl = grayAt(copy, w, x-1, y+1), bc = grayAt(copy, w, x, y+1), br = grayAt(copy, w, x+1, y+1);
+                const gx = -tl - 2*ml - bl + tr + 2*mr + br;
+                const gy = -tl - 2*tc - tr + bl + 2*bc + br;
+                const edge = Math.min(255, Math.sqrt(gx*gx + gy*gy) * 1.2);
+                const v = clamp(255 - edge * 0.85);
+                // Mix original gray + edge
+                const out = clamp(gray * 0.5 + v * 0.5);
+                d[idx] = d[idx+1] = d[idx+2] = out;
+            }
+        }
+    } else if (style === 'pop') {
+        for (let i = 0; i < d.length; i += 4) {
+            let [r, g, b] = [d[i], d[i+1], d[i+2]];
+            [r, g, b] = boostSaturation(r, g, b, 2.2);
+            r = posterize(r, 4);
+            g = posterize(g, 4);
+            b = posterize(b, 4);
+            d[i]=r; d[i+1]=g; d[i+2]=b;
+        }
+    } else if (style === 'pixel') {
+        // Pixelate
+        const w = imgData.width, h = imgData.height;
+        const BLOCK = Math.floor(w / 40);
+        for (let y = 0; y < h; y += BLOCK) {
+            for (let x = 0; x < w; x += BLOCK) {
+                const idx = (y*w + x)*4;
+                const [r, g, b] = [d[idx], d[idx+1], d[idx+2]];
+                for (let dy = 0; dy < BLOCK && y+dy < h; dy++) {
+                    for (let dx = 0; dx < BLOCK && x+dx < w; dx++) {
+                        const i2 = ((y+dy)*w + (x+dx))*4;
+                        d[i2]=r; d[i2+1]=g; d[i2+2]=b;
+                    }
+                }
+            }
+        }
+    }
+}
+
+function grayAt(d, w, x, y) {
+    const i = (y*w+x)*4;
+    return d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114;
+}
+
+function posterize(v, levels) {
+    return Math.round(v / 255 * levels) / levels * 255;
+}
+
+function clamp(v) {
+    return Math.max(0, Math.min(255, Math.round(v)));
+}
+
+function boostSaturation(r, g, b, factor) {
+    const gray = r*0.299 + g*0.587 + b*0.114;
+    return [
+        clamp(gray + (r - gray) * factor),
+        clamp(gray + (g - gray) * factor),
+        clamp(gray + (b - gray) * factor)
+    ];
+}
+
+function drawPixelGrid(ctx, size) {
+    const step = size / 40;
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x < size; x += step) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, size); ctx.stroke();
+    }
+    for (let y = 0; y < size; y += step) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size, y); ctx.stroke();
+    }
+}
+
+function drawHalftone(ctx, size) {
+    const step = 12;
+    for (let y = 0; y < size; y += step) {
+        for (let x = 0; x < size; x += step) {
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, Math.PI*2);
+            ctx.fillStyle = '#000';
+            ctx.fill();
+        }
+    }
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+startCamera();
+</script>
+</body>
+</html>
